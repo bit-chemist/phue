@@ -6,3 +6,4 @@ test.py
 *.sublime-workspace
 dist
 MANIFEST
+.idea/

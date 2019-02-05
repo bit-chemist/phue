@@ -620,10 +620,6 @@ class Bridge(object):
         self.lights_by_name = {}
         self.sensors_by_id = {}
         self.sensors_by_name = {}
-        self._name = None
-
-        # self.minutes = 600 # these do not seem to be used anywhere?
-        # self.seconds = 10
 
         self.connect()
 
@@ -824,6 +820,40 @@ class Bridge(object):
     def get_api(self):
         """ Returns the full api dictionary """
         return self.request('GET', '/api/' + self.username)
+
+    def get_config(self):
+        """ Returns the bridge config dictionary """
+        return self.request('GET', '/api/' + self.username + '/config/')
+
+    def set_config(self, parameter, value=None):
+        """ Adjust properties of a bridge
+
+        parameters: 'name' : string
+
+        """
+        if isinstance(parameter, dict):
+            data = parameter
+        else:
+            data = {parameter: value}
+        result = None
+        logger.debug(str(data))
+        result = self.request('PUT', '/api/' + self.username + '/config/', data)
+        if 'error' in list(result[0].keys()):
+            logger.warn("ERROR: {0} for bridge {1}".format(
+                result[0]['error']['description'], self.name))
+
+        logger.debug(result)
+        return result
+
+    def update_bridge_sw(self):
+        config = self.get_config()
+        if config['internetservices']['swupdate'] == 'connected':
+            if config['swupdate2']['state'] in ['installing', 'transferring']:
+                logger.warning("Software update already in progress")
+            elif config['swupdate2']['state'] in ['anyreadytoinstall', 'allreadytoinstall']:
+                self.set_config({'swupdate2': {'install': True}})
+        else:
+            logger.warning("Error: Unable to reach software update server for bridge {0}".format(self.name))
 
     def get_light(self, light_id=None, parameter=None):
         """ Gets state by light_id and parameter"""
